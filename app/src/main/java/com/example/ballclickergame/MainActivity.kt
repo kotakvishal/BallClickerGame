@@ -4,16 +4,23 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlin.math.pow
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
+import kotlin.random.Random
 
 
 class MainActivity : ComponentActivity() {
@@ -58,6 +65,11 @@ fun MainScreen(){
                 isTimerRunning =false
             }
         }
+        BallClicker(
+            enabled = isTimerRunning
+        ){
+            points++
+        }
     }
 }
 
@@ -88,7 +100,67 @@ fun CountDownTimer(
     }
     Text(
         text =(curTim/1000).toString(),
-    fontSize = 20.sp,
-    fontWeight = FontWeight.Bold)
+        fontSize = 20.sp,
+        fontWeight = FontWeight.Bold)
 }
 
+
+/**
+ * Composable for ball clicker
+ */
+
+@Composable
+fun BallClicker(
+    radius :Float =100f,
+    enabled :Boolean =false,
+    ballColor :Color=Color.Red,
+    onBallClick:()->Unit={}
+){
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+
+        var ballPosition by remember {
+            mutableStateOf(randomOffset(
+                radius=radius,
+                width =constraints.maxWidth,
+                height = constraints.maxHeight,
+            ))
+        }
+        Canvas(modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(enabled) {
+                if (!enabled) {
+                    return@pointerInput
+                }
+                detectTapGestures {
+                    val distance = sqrt(
+                        (it.x - ballPosition.x).pow(2) + (it.y - ballPosition.y).pow(2)
+                    )
+                    if (distance <= radius) {
+                        ballPosition = randomOffset(
+                            radius = radius,
+                            width = constraints.maxWidth,
+                            height = constraints.maxHeight
+                        )
+                        onBallClick()
+                    }
+                }
+            }
+        ){
+            drawCircle(
+                color = ballColor,
+                radius=radius,
+                center =ballPosition
+            )
+        }
+
+    }
+}
+
+private fun randomOffset(radius: Float,width :Int, height :Int):Offset{
+    return Offset(
+        x= Random.nextInt(radius.roundToInt(),width-radius.roundToInt()).toFloat(),
+        y= Random.nextInt(radius.roundToInt(),height-radius.roundToInt()).toFloat()
+    )
+
+
+}
